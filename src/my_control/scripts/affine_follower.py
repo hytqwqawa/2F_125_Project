@@ -27,7 +27,7 @@ class AffineFollowerPN:
         self.slow_radius = rospy.get_param("~slow_radius", 0.6)
         self.k_yaw = rospy.get_param("~k_yaw", 2.2)
         self.max_angular = rospy.get_param("~max_angular", 2.2)
-        self.distance_threshold = rospy.get_param("~distance_threshold", 0.15)
+        self.distance_threshold = rospy.get_param("~distance_threshold", 0.12)
         
         self.allow_reverse = rospy.get_param("~allow_reverse", True)
         self.switch_to_reverse_angle = math.radians(110.0)
