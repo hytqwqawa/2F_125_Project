@@ -1,0 +1,19 @@
+<launch>
+
+    <node
+        pkg="my_control"
+        type="multi_car_itcg.py"
+        name="multi_car_itcg"
+        output="screen">
+
+        <param name="cars" value="car1,car2,car3"/>
+
+        <param name="target_xs" value="-1.0,-1.0,-1.0"/>
+
+        <param name="target_ys" value="-0.2,0.0,0.2"/>
+
+        <param name="desired_impact_time" value="13"/>
+
+    </node>
+
+</launch>

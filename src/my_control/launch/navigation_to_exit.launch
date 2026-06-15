@@ -1,0 +1,20 @@
+<launch>
+    <arg name="car_name" default="car5" />
+    
+    <arg name="target_x" default="3.5" />
+    <arg name="target_y" default="-1.8" />
+
+
+    <node pkg="my_control" type="navigation_to_exit.py" name="nav_$(arg car_name)" output="screen">
+        
+        <param name="pose_topic" value="/vrpn_client_node/$(arg car_name)/pose" />
+        <param name="cmd_topic"  value="/$(arg car_name)/cmd_vel" />
+
+        <param name="target_x" value="$(arg target_x)" />
+        <param name="target_y" value="$(arg target_y)" />
+
+        <param name="cruise_speed" value="0.8" />
+        <param name="k_yaw" value="2.2" />
+        <param name="allow_reverse" value="true" />
+    </node>
+</launch>

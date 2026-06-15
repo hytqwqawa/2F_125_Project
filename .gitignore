@@ -1,0 +1,20 @@
+# 忽略 ROS 编译、安装和日志目录
+build/
+devel/
+install/
+logs/
+.catkin_workspace
+
+# 忽略由 catkin 自动初始化的顶层 CMake 链接文件
+src/CMakeLists.txt
+
+# 忽略 Python 缓存文件
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 忽略临时文件及常见的编辑器配置
+*~
+*.swp
+.vscode/
+.idea/

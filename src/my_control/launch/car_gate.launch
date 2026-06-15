@@ -1,0 +1,27 @@
+<launch>
+    <arg name="car_name" default="car3" />
+
+    <arg name="target_x" default="-1.53" />
+    <arg name="target_y" default="1.5" />
+
+    <arg name="distance_budget_factor" default="1.4" />
+    <arg name="desired_impact_time"    default="11.8" />
+    <arg name="lambda_desired_deg"     default="90.0" />  
+    <arg name="cruise_speed"           default="0.4" />
+    <arg name="terminal_speed"         default="0.2" />
+
+
+    <node pkg="my_control" type="car_gate.py" name="car_gate" output="screen">
+        
+        <param name="car_name" value="$(arg car_name)" />
+
+        <param name="target_x"               value="$(arg target_x)" />
+        <param name="target_y"               value="$(arg target_y)" />
+        <param name="distance_budget_factor" value="$(arg distance_budget_factor)" />
+        <param name="desired_impact_time"    value="$(arg desired_impact_time)" />
+        <param name="lambda_desired_deg"     value="$(arg lambda_desired_deg)" />
+        <param name="cruise_speed"           value="$(arg cruise_speed)" />
+        <param name="terminal_speed"         value="$(arg terminal_speed)" />
+        
+    </node>
+</launch>

@@ -1,0 +1,20 @@
+<launch>
+    <node
+        pkg="my_control"
+        type="formation_follow.py"
+        name="formation_follow"
+        output="screen">
+
+        <param name="leader_name" value="car3"/>
+        <param name="follower1_name" value="car1"/>
+        <param name="follower2_name" value="car2"/>
+
+        <param name="L" value="0.7"/>
+        <param name="alpha_deg" value="60"/>
+        <param name="k2" value="1.0"/>
+        <param name="k3" value="1.0"/>
+        <param name="kp_yaw" value="4.0"/>
+        <param name="max_speed" value="0.8"/>
+        <param name="max_angular" value="6"/>
+    </node>
+</launch>

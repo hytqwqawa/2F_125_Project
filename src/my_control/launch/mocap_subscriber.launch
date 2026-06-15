@@ -1,0 +1,7 @@
+<launch>
+    <arg name="car_names" default="car1,car2,car3,car4" />
+
+    <node pkg="my_control" type="mocap_subscriber.py" name="mocap_sub_multi" output="screen">
+        <param name="car_names" value="$(arg car_names)" />
+    </node>
+</launch>

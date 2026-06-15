@@ -1,0 +1,39 @@
+<launch>
+    <arg name="save_csv" default="true" />
+
+    <node pkg="my_control" type="car_gate.py" name="car_gate_1" output="screen">
+        <param name="save_csv" value="$(arg save_csv)" />
+        <param name="car_name" value="car1" />
+        <param name="target_x" value="0.3" />
+        <param name="target_y" value="1.5" />
+        <param name="desired_impact_time" value="12" />
+        <param name="lambda_desired_deg" value="90.0" />
+        <param name="cruise_speed" value="0.4" />
+        <param name="terminal_speed" value="0.2" />
+        <param name="distance_budget_factor" value="1.4" />
+    </node>
+
+    <node pkg="my_control" type="car_gate.py" name="car_gate_2" output="screen">
+        <param name="save_csv" value="$(arg save_csv)" />
+        <param name="car_name" value="car2" />
+        <param name="target_x" value="2.97" />
+        <param name="target_y" value="1.5" />
+        <param name="desired_impact_time" value="11.8" />
+        <param name="lambda_desired_deg" value="90.0" />
+        <param name="cruise_speed" value="0.4" />
+        <param name="terminal_speed" value="0.2" />
+        <param name="distance_budget_factor" value="1.4" />
+    </node>
+
+    <node pkg="my_control" type="car_gate.py" name="car_gate_3" output="screen">
+        <param name="save_csv" value="$(arg save_csv)" />
+        <param name="car_name" value="car3" />
+        <param name="target_x" value="-1.52" />
+        <param name="target_y" value="1.5" />
+        <param name="desired_impact_time" value="11.8" />
+        <param name="lambda_desired_deg" value="90.0" />
+        <param name="cruise_speed" value="0.4" />
+        <param name="terminal_speed" value="0.2" />
+        <param name="distance_budget_factor" value="1.4" />
+    </node>
+</launch>

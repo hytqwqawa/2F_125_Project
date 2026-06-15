@@ -1,0 +1,37 @@
+<launch>
+    <node pkg="my_control" type="virtual_leader.py" name="virtual_leaders" output="screen">
+        <rosparam param="initial_x">[0.0, -1.0, 1.0]</rosparam>
+        <rosparam param="initial_y">[1.0, -1.0, -1.0]</rosparam>
+        <!-- final_x / final_y can be a list of stages; each stage is a length-3 list -->
+        <rosparam param="final_x">[[-1.0, -1.0, 1.0], [2.0, -1.0, 1.0], [0.0, -1.5, 1.5], [-1.0, 1.0, 1.0]]</rosparam>
+        <rosparam param="final_y">[[1.0, -1.0, -1.0], [1.0, -1.0, -1.0], [1.5, -1.5, -1.5], [0.0, -1.0, 1.0]]</rosparam>
+    </node>
+
+    <node pkg="my_control" type="affine_follower.py" name="car1_node" output="screen" required="true">
+        <param name="car_name" value="car1" />
+        <rosparam param="neighbors">['/leader1/pose', '/leader2/pose', '/leader3/pose']</rosparam>
+        <rosparam param="nominal_self_pos">[-0.8, 0.8]</rosparam>
+        <rosparam param="nominal_neighbors_pos">[[0.0, 1.0], [-1.0, -1.0], [1.0, -1.0]]</rosparam>
+    </node>
+
+    <node pkg="my_control" type="affine_follower.py" name="car2_node" output="screen" required="true">
+        <param name="car_name" value="car2" />
+        <rosparam param="neighbors">['/leader2/pose', '/leader3/pose', '/vrpn_client_node/car1/pose']</rosparam>
+        <rosparam param="nominal_self_pos">[0.8, 0.8]</rosparam>
+        <rosparam param="nominal_neighbors_pos">[[-1.0, -1.0], [1.0, -1.0], [-0.8, 0.8]]</rosparam>
+    </node>
+    
+    <node pkg="my_control" type="affine_follower.py" name="car3_node" output="screen" required="true">
+        <param name="car_name" value="car3" />
+        <rosparam param="neighbors">['/leader1/pose', '/leader3/pose', '/vrpn_client_node/car2/pose']</rosparam>
+        <rosparam param="nominal_self_pos">[0.8, -0.8]</rosparam>
+        <rosparam param="nominal_neighbors_pos">[[0.0, 1.0], [1.0, -1.0], [0.8, 0.8]]</rosparam>
+    </node>
+
+    <node pkg="my_control" type="affine_follower.py" name="car4_node" output="screen" required="true">
+        <param name="car_name" value="car4" />
+        <rosparam param="neighbors">['/vrpn_client_node/car1/pose', '/vrpn_client_node/car2/pose', '/vrpn_client_node/car3/pose']</rosparam>
+        <rosparam param="nominal_self_pos">[-0.8, -0.8]</rosparam>
+        <rosparam param="nominal_neighbors_pos">[[-0.8, 0.8], [0.8, 0.8], [0.8, -0.8]]</rosparam>
+    </node>
+</launch>

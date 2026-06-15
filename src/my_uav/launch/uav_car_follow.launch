@@ -1,0 +1,35 @@
+<launch>
+    <arg name="uav_id" default="1" />
+    <arg name="uav_name" default="uav" />
+    <arg name="car_name" default="car1" />
+    <arg name="follow_speed" default="0.6" />
+    <arg name="follow_gain" default="0.8" />
+    <arg name="arrival_thres" default="0.20" />
+    <arg name="car_pose_topic" default="/vrpn_client_node_1/$(arg car_name)/pose" />
+    <arg name="car_pose_topic_type" default="poseStamped" />
+    <arg name="takeoff_wait" default="10.0" />
+    <arg name="hover_wait" default="2.0" />
+    <arg name="rate" default="20.0" />
+    <arg name="home_x" default="0.0" />
+    <arg name="home_y" default="0.0" />
+    <arg name="home_z" default="0.0" />
+    <arg name="return_timeout" default="60.0" />
+
+    <node pkg="my_uav" type="uav_car_follow.py" name="uav_car_follow" output="screen">
+        <param name="uav_id" value="$(arg uav_id)" />
+        <param name="uav_name" value="$(arg uav_name)" />
+        <param name="car_name" value="$(arg car_name)" />
+        <param name="follow_speed" value="$(arg follow_speed)" />
+        <param name="follow_gain" value="$(arg follow_gain)" />
+        <param name="arrival_thres" value="$(arg arrival_thres)" />
+        <param name="car_pose_topic" value="$(arg car_pose_topic)" />
+        <param name="car_pose_topic_type" value="$(arg car_pose_topic_type)" />
+        <param name="takeoff_wait" value="$(arg takeoff_wait)" />
+        <param name="hover_wait" value="$(arg hover_wait)" />
+        <param name="rate" value="$(arg rate)" />
+        <param name="home_x" value="$(arg home_x)" />
+        <param name="home_y" value="$(arg home_y)" />
+        <param name="home_z" value="$(arg home_z)" />
+        <param name="return_timeout" value="$(arg return_timeout)" />
+    </node>
+</launch>

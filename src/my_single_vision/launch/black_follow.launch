@@ -1,0 +1,19 @@
+<launch>
+    <arg name="car_name" default="car3" />
+    
+    <arg name="forward_speed" default="0.1" />
+    <arg name="kp" default="0.03" />
+    <arg name="max_angular" default="1.2" />
+    <arg name="min_black_pixels" default="100" />
+
+    <node pkg="my_single_vision" type="black_follow.py" name="black_follow_$(arg car_name)" output="screen">
+        
+        <param name="binary_topic" value="/$(arg car_name)/binary_image" />
+        <param name="cmd_topic"    value="/$(arg car_name)/cmd_vel" />
+
+        <param name="forward_speed"    value="$(arg forward_speed)" />
+        <param name="kp"               value="$(arg kp)" />
+        <param name="max_angular"      value="$(arg max_angular)" />
+        <param name="min_black_pixels" value="$(arg min_black_pixels)" />
+    </node>
+</launch>
