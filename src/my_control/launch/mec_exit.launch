@@ -1,0 +1,22 @@
+<launch>
+    <arg name="car_name" default="car6" />
+
+    <arg name="goal_x" default="3.5" />
+    <arg name="goal_y" default="-1.8" />
+
+    <node pkg="my_control" type="mec_exit.py" name="mec_exit_$(arg car_name)" output="screen">
+        <param name="pose_topic" value="/vrpn_client_node/$(arg car_name)/pose" />
+        <param name="cmd_vel_topic" value="/$(arg car_name)/cmd_vel" />
+        <param name="goal_x" value="$(arg goal_x)" />
+        <param name="goal_y" value="$(arg goal_y)" />
+
+        <param name="pos_tolerance" value="0.05" />
+        <param name="yaw_tolerance" value="0.05" />
+        <param name="max_lin" value="0.20" />
+        <param name="max_lat" value="0.20" />
+        <param name="max_ang" value="0.35" />
+        <param name="kp_linear" value="0.8" />
+        <param name="kp_lateral" value="0.8" />
+        <param name="kp_yaw" value="1.2" />
+    </node>
+</launch>

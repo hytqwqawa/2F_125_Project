@@ -59,7 +59,7 @@ class ImpactTimeControlGuidance:
         self.sigma_lambda_max = math.radians(10.0)
 
         # Angular-error recovery safeguard
-        self.chi_recovery_th = 0.10         # 与论文参数表保持一致
+        self.chi_recovery_th = 0.01         # 与论文参数表保持一致
         self.lambda_recovery_th = math.radians(2.0)
         self.lambda_recovery_band = math.radians(8.0)
         self.w_rec_active_th = 0.05         # 用于统计 gamma_rec 的激活阈值
@@ -473,7 +473,7 @@ class ImpactTimeControlGuidance:
                 chi_e = max(chi_raw, 0.0)
 
                 K_t = self.K_f + (self.K_s - self.K_f) * (max(0.0, t_go / self.T_total) ** self.n) if t_go > 0.0 else self.K_f
-                # K_t= self.K_f
+                K_t= self.K_f
 
                 lambda_eps = lambda_e if abs(lambda_e) > self.lambda_g else self.sign_nonzero(lambda_e) * self.lambda_g
                 denom = max(R, self.R_g) * lambda_eps
