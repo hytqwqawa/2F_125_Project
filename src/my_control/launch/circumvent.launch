@@ -1,0 +1,58 @@
+<launch>
+    <!-- ============================================================ -->
+    <!-- car2: target point and cruise speed                          -->
+    <!-- ============================================================ -->
+    <arg name="car2_target_x" default="-0.4" />
+    <arg name="car2_target_y" default="0.0" />
+    <arg name="car2_speed"    default="0.3" />
+
+    <!-- ============================================================ -->
+    <!-- car3: target point and cruise speed                          -->
+    <!-- ============================================================ -->
+    <arg name="car3_target_x" default="0.5" />
+    <arg name="car3_target_y" default="-0.5" />
+    <arg name="car3_speed"    default="0.3" />
+
+    <!-- ============================================================ -->
+    <!-- car4: target point and cruise speed                          -->
+    <!-- ============================================================ -->
+    <arg name="car4_target_x" default="1.0" />
+    <arg name="car4_target_y" default="0.0" />
+    <arg name="car4_speed"    default="0.3" />
+
+    <node pkg="my_control"
+          type="circumvent.py"
+          name="circumvent"
+          output="screen">
+
+        <!-- Per-car target and speed parameters -->
+        <param name="car2_target_x" value="$(arg car2_target_x)" />
+        <param name="car2_target_y" value="$(arg car2_target_y)" />
+        <param name="car2_speed"    value="$(arg car2_speed)" />
+
+        <param name="car3_target_x" value="$(arg car3_target_x)" />
+        <param name="car3_target_y" value="$(arg car3_target_y)" />
+        <param name="car3_speed"    value="$(arg car3_speed)" />
+
+        <param name="car4_target_x" value="$(arg car4_target_x)" />
+        <param name="car4_target_y" value="$(arg car4_target_y)" />
+        <param name="car4_speed"    value="$(arg car4_speed)" />
+
+        <!-- Same common control/safety settings as your original node -->
+        <param name="bound_x_min" value="-3.6" />
+        <param name="bound_x_max" value="3.6" />
+        <param name="bound_y_min" value="-1.9" />
+        <param name="bound_y_max" value="1.9" />
+        <param name="safety_margin" value="0.08" />
+        <param name="boundary_predict_time" value="0.25" />
+
+        <param name="min_speed" value="0.15" />
+        <param name="slow_radius" value="0.6" />
+        <param name="k_yaw" value="2.2" />
+        <param name="max_angular" value="1.6" />
+        <param name="distance_threshold" value="0.03" />
+
+        <param name="allow_reverse" value="true" />
+        <param name="angular_cmd_is_steering" value="false" />
+    </node>
+</launch>
