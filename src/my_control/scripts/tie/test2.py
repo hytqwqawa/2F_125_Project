@@ -17,28 +17,32 @@ class ImpactTimeControlGuidance:
         rospy.init_node('impact_time_control_guidance', anonymous=True)
         
         # 安全场景：目标点左移，缩减初始相对距离以控制最大外扩曲率
-        self.target_x = -1.5
-        self.target_y = -0.5
+        self.target_x = -1
+        self.target_y = 1
         
         # 1. 平台运动学约束与极限参数 
-        self.cruise_speed = 0.4
-        self.terminal_speed = 0.2  
+        self.cruise_speed = 0.2
+        self.terminal_speed = 0.4  
         
         self.v_min = 0.05    
         self.v_max = 0.50    
         self.a_f = 0.5       
         self.a_b = 0.5       
-        self.Delta_L_max = 5.0 
+        self.Delta_L_max = 7.0 
+        self.chi_min = 0.10                 # 初始剩余路程裕度
+        self.eta_min = 0.10                 # S0 插值下限权重
+        self.eta_max = 0.6                # S0 插值上限权重
+        self.sigma_sat = math.radians(120.0) # 初始前置角饱和值
         
-        self.distance_budget_factor = 1.7
+        # self.distance_budget_factor = 1.65  # 旧版比例预算参数，新版 S0 选择不再使用
         self.max_angular = 3.0
         self.max_yaw_accel = 2.0     
         self.accel_duration = 0.2
         self.distance_threshold = 0.05
         
         # 2. 制导律参数与平滑滤波设置
-        self.desired_impact_time = 18.0- self.accel_duration
-        self.lambda_desired = math.radians(135.0)
+        self.desired_impact_time = 18.0 
+        self.lambda_desired = math.radians(120.0)
         
         self.K_f = 2.1              
         self.n = 1.5                 
@@ -48,14 +52,20 @@ class ImpactTimeControlGuidance:
         
         self.lambda_corr_gain = 0.35           
         self.sigma_lambda_max = math.radians(10.0)
+
+        # Angular-error recovery safeguard: only blends in when chi is nearly exhausted
+        # while the gate-heading error is still non-negligible. No speed compensation is used.
+        self.chi_recovery_th = 0.05
+        self.lambda_recovery_th = math.radians(2.0)
+        self.lambda_recovery_band = math.radians(8.0)
         
         # 终段触发阈值：新增 2度 角度锁死阈值
-        self.terminal_angle_error = math.radians(2.0)
-        self.terminal_blind_tgo = 2.0   
+        self.terminal_angle_error = math.radians(3.0)
+        self.terminal_blind_tgo = 1   
         self.terminal_blind_R = 0.4     
         self.locked_yaw = 0.0  
 
-        self.sigma_dot_limit = math.radians(35.0)
+        self.sigma_dot_limit = math.radians(100.0)
         self.R_los_min = 0.18
         self.omega_slew_limit = 1.5     
         self.last_omega_cmd = 0.0
@@ -153,6 +163,62 @@ class ImpactTimeControlGuidance:
         t1 = (v0 - vg + self.a_f * td) / (self.a_b + self.a_f)
         vv = v0 - self.a_b * t1
         return (v0 + vv)/2 * t1 + (vv + vg)/2 * (td - t1)
+
+    def mod2pi(self, x):
+        return x - 2.0 * math.pi * math.floor(x / (2.0 * math.pi))
+
+    def dubins_length(self, x0, y0, yaw0, x1, y1, yaw1, rho):
+        if rho <= 1e-6:
+            return math.hypot(x1 - x0, y1 - y0)
+
+        dx, dy = x1 - x0, y1 - y0
+        d = math.hypot(dx, dy) / rho
+        if d < 1e-9:
+            return abs(self.normalize_angle(yaw1 - yaw0)) * rho
+
+        theta = self.mod2pi(math.atan2(dy, dx))
+        alpha = self.mod2pi(yaw0 - theta)
+        beta = self.mod2pi(yaw1 - theta)
+        sa, sb = math.sin(alpha), math.sin(beta)
+        ca, cb = math.cos(alpha), math.cos(beta)
+        cab = math.cos(alpha - beta)
+        cand = []
+
+        p2 = 2 + d*d - 2*cab + 2*d*(sa - sb)
+        if p2 >= 0:
+            tmp = math.atan2(cb - ca, d + sa - sb)
+            cand.append(self.mod2pi(-alpha + tmp) + math.sqrt(p2) + self.mod2pi(beta - tmp))
+
+        p2 = 2 + d*d - 2*cab + 2*d*(-sa + sb)
+        if p2 >= 0:
+            tmp = math.atan2(ca - cb, d - sa + sb)
+            cand.append(self.mod2pi(alpha - tmp) + math.sqrt(p2) + self.mod2pi(-beta + tmp))
+
+        p2 = -2 + d*d + 2*cab + 2*d*(sa + sb)
+        if p2 >= 0:
+            p = math.sqrt(p2)
+            tmp = math.atan2(-ca - cb, d + sa + sb) - math.atan2(-2.0, p)
+            cand.append(self.mod2pi(-alpha + tmp) + p + self.mod2pi(-beta + tmp))
+
+        p2 = -2 + d*d + 2*cab - 2*d*(sa + sb)
+        if p2 >= 0:
+            p = math.sqrt(p2)
+            tmp = math.atan2(ca + cb, d - sa - sb) - math.atan2(2.0, p)
+            cand.append(self.mod2pi(alpha - tmp) + p + self.mod2pi(beta - tmp))
+
+        tmp = (6 - d*d + 2*cab + 2*d*(sa - sb)) / 8.0
+        if abs(tmp) <= 1:
+            p = self.mod2pi(2.0 * math.pi - math.acos(tmp))
+            t = self.mod2pi(alpha - math.atan2(ca - cb, d - sa + sb) + 0.5 * p)
+            cand.append(t + p + self.mod2pi(alpha - beta - t + p))
+
+        tmp = (6 - d*d + 2*cab + 2*d*(-sa + sb)) / 8.0
+        if abs(tmp) <= 1:
+            p = self.mod2pi(2.0 * math.pi - math.acos(tmp))
+            t = self.mod2pi(-alpha - math.atan2(ca - cb, d + sa - sb) + 0.5 * p)
+            cand.append(t + p + self.mod2pi(beta - alpha - t + p))
+
+        return (min(cand) * rho) if cand else math.hypot(dx, dy)
     
     def publish_telemetry(self, data_dict):
         for key, val in data_dict.items():
@@ -194,21 +260,27 @@ class ImpactTimeControlGuidance:
         
         S_min = self.calc_S_min(self.v_0, self.v_g, self.T_total)
         S_max = self.calc_S_max(self.v_0, self.v_g, self.T_total)
-        L_min = R_0 
+        rho = self.v_max / max(self.max_angular, 1e-6)
+        L_min = self.dubins_length(self.current_x, self.current_y, self.current_yaw,
+                                   self.target_x, self.target_y, self.lambda_desired, rho)
         L_max = L_min + self.Delta_L_max
         
-        S_lower = max(S_min, L_min)
+        S_lower = max(S_min, L_min, R_0 + self.chi_min)
         S_upper = min(S_max, L_max)
+        
+        sigma_bar = min(abs(self.normalize_angle(sigma_0)), self.sigma_sat)
+        eta_den = max(1e-6, 1.0 - math.cos(self.sigma_sat))
+        eta_S = self.eta_min + (self.eta_max - self.eta_min) * (1.0 - math.cos(sigma_bar)) / eta_den
+        eta_S = self.sat(eta_S, 0.0, 1.0)
         
         rospy.loginfo("物理极限区间: [%.2f, %.2f]m | 几何路径区间: [%.2f, %.2f]m", S_min, S_max, L_min, L_max)
         if S_lower > S_upper:
             rospy.logwarn("【越界】可行距离区间不存在！强行使用折中值。")
             self.S_0 = (S_min + S_max) / 2.0
         else:
-            self.S_0 = R_0 * self.distance_budget_factor
-            if not (S_lower <= self.S_0 <= S_upper):
-                self.S_0 = self.sat(self.S_0, S_lower, S_upper)
-                rospy.logwarn("设定的预算越界，已自动截断至可行边界: %.2f m", self.S_0)
+            self.S_0 = (1.0 - eta_S) * S_lower + eta_S * S_upper
+            rospy.loginfo("S0新版选择: 区间[%.2f, %.2f]m | eta_S=%.2f | S0=%.2f m",
+                          S_lower, S_upper, eta_S, self.S_0)
 
         self.c_coeff = 30.0 * (self.S_0 / self.T_total - (self.v_0 + self.v_g) / 2.0)
         chi_0 = self.S_0 - R_0
@@ -251,11 +323,11 @@ class ImpactTimeControlGuidance:
                     self.record_csv(t, telemetry)
 
             elif self.state == self.STATE_ITACG:
-                if (R < 1.5 and abs(lambda_e) <= self.terminal_angle_error) or t_go <= self.terminal_blind_tgo or R <= self.terminal_blind_R:
+                if (R < 0.6 and abs(lambda_e) <= self.terminal_angle_error) or t_go <= self.terminal_blind_tgo or R <= self.terminal_blind_R:
                     self.state = self.STATE_PNG
                     self.locked_yaw = self.lambda_desired 
-                    self.filtered_omega = 0.0
-                    rospy.loginfo("满足终段触发条件 (误差<2度 或 触底)，切换至目标偏航角锁死模式！")
+                    # self.filtered_omega = 0.0
+                    rospy.loginfo("满足终段触发条件 (误差<3度 或 触底)，切换至目标偏航角锁死模式！")
                     continue
 
                 s = self.sat(t / self.T_total, 0.0, 1.0)
@@ -266,17 +338,48 @@ class ImpactTimeControlGuidance:
                 chi_e = max(S_r - R, 0.0)
                 
                 K_t = self.K_f + (self.K_s - self.K_f) * (max(0.0, t_go / self.T_total) ** self.n) if t_go > 0 else self.K_f
+                # K_t = self.K_f 
+
                 denom = max(R, 0.05) * (lambda_e if abs(lambda_e) > 0.01 else math.copysign(0.01, lambda_e))
                 sigma_d_0 = 2.0 * math.atan((K_t * chi_e) / denom)
 
-                # 终端备用修正
-                sigma_lam = 0.0
-                if R < 1.5 and abs(lambda_e) > math.radians(2.0):
-                    V_eff, R_corr = max(V_cmd, 0.08), max(R, 0.15)
-                    sin_sigma_lam = self.sat(self.lambda_corr_gain * R_corr * lambda_e / V_eff, -math.sin(self.sigma_lambda_max), math.sin(self.sigma_lambda_max))
-                    sigma_lam = math.asin(sin_sigma_lam)
-                    if abs(sigma_lam) > abs(sigma_d_0):
-                        sigma_d_0 = sigma_lam
+                #    ---------- 角度误差修正下界 ----------
+                V_eff, R_corr = max(V_cmd, 0.08), max(R, 0.15)
+                
+                # [核心新增] 动态前置角限幅：距离越近，强迫车头越对准目标
+                fade_distance = 0.8  # 从 0.8m 开始触发衰减
+                if R < fade_distance:
+                    # 线性衰减：R 越小，允许的最大前置角越小，直至趋近于 0
+                    current_sigma_max = self.sigma_lambda_max * (R / fade_distance)
+                else:
+                    current_sigma_max = self.sigma_lambda_max
+
+                sin_sigma_lam = self.sat(self.lambda_corr_gain * R_corr * lambda_e / V_eff, 
+                                         -math.sin(current_sigma_max), 
+                                         math.sin(current_sigma_max))
+                sigma_lam = math.asin(sin_sigma_lam)
+                
+                # Smooth angular-error recovery blending.
+                # When the range surplus chi_e is nearly exhausted but lambda_e is still large,
+                # blend the nominal half-angle command with sigma_lam instead of hard switching.
+                sigma_HA = sigma_d_0
+                mu_chi = self.sat(
+                    (self.chi_recovery_th - chi_e) / max(self.chi_recovery_th, 1e-6),
+                    0.0,
+                    1.0
+                )
+                mu_lam = self.sat(
+                    (abs(lambda_e) - self.lambda_recovery_th) / max(self.lambda_recovery_band, 1e-6),
+                    0.0,
+                    1.0
+                )
+                # Smoothstep weights reduce command derivative jumps at activation/deactivation.
+                w_chi = mu_chi * mu_chi * (3.0 - 2.0 * mu_chi)
+                w_lam = mu_lam * mu_lam * (3.0 - 2.0 * mu_lam)
+                w_rec = w_chi * w_lam
+                sigma_d_0 = self.normalize_angle(
+                    sigma_HA + w_rec * self.normalize_angle(sigma_lam - sigma_HA)
+                )
 
                 # ==========================================================
                 # [核心手术]：二阶指令平滑，剥离前馈信号中的高频噪声
@@ -313,7 +416,7 @@ class ImpactTimeControlGuidance:
                 V_cmd = self.v_0 + (self.v_g - self.v_0)*(3*s**2 - 2*s**3) + self.c_coeff*(s**2*(1-s)**2)
                 
                 yaw_error = self.normalize_angle(self.locked_yaw - self.current_yaw)
-                raw_omega = 2.0 * yaw_error 
+                raw_omega = 0.5 * yaw_error 
                 
                 self.filtered_omega = self.omega_filter_alpha * raw_omega + (1.0 - self.omega_filter_alpha) * self.filtered_omega
                 omega = self.filtered_omega
